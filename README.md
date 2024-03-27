@@ -1,2 +1,2 @@
-# EEG2IMAGE
-Improve EEG2IMAGE classifier performance
+# EEG2IMAGE classifier 성능 개선
+'24W Deep Learning Architecture Project
