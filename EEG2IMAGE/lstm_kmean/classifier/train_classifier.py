@@ -53,6 +53,9 @@ if __name__ == '__main__':
     
     # load checkpoint
     triplenet = TripleNet(n_classes=n_classes)
+    for layer in triplenet.layers :
+        layer.trainable = False
+        
     opt = tf.keras.optimizers.Adam(learning_rate=3e-4)
     triplenet_ckpt = tf.train.Checkpoint(step=tf.Variable(1), model=triplenet, optimizer=opt)
     triplenet_ckptman = tf.train.CheckpointManager(triplenet_ckpt, directory='/content/drive/MyDrive/EEG2Image', max_to_keep=5000)
