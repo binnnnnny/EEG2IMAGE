@@ -13,7 +13,7 @@ We used a transformer-based model to extract features from EEG data. Existing co
 ### :two: 2-Phase
 In the case of EEG signals, overfitting frequently occurs due to differences in signals from person to person. To prevent such overfitting, we propose a 2-Phase learning method. The overall structure of the proposed 2-Phase learning method is as follows.
 
-<img src="./docs/2Phase_architecture.png">
+<img src="./docs/2Phase_architecture_1.png">
 
 ## Result
 ### 1. Classifier 
