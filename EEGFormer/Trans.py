@@ -46,6 +46,25 @@ os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, gpus))
 
 
+class LabelSmoothingLoss(torch.nn.Module):
+    def __init__(self, classes, smoothing=0.0, dim=-1):
+        super(LabelSmoothingLoss, self).__init__()
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.classes = classes
+        self.dim = dim
+
+    def forward(self, predictions, labels, eval = False):
+        predictions = predictions.log_softmax(dim=self.dim)
+        
+        with torch.no_grad():
+            indicator = 1.0 - labels
+            smooth_labels = torch.zeros_like(labels)
+            smooth_labels.fill_(self.smoothing / (self.classes - 1))
+            smooth_labels = labels * self.confidence + indicator * smooth_labels#lables->indicator
+
+        return torch.mean(torch.sum(-smooth_labels.cuda(0) * predictions, dim=self.dim))
+
 class PatchEmbedding(nn.Module):
     def __init__(self, emb_size):
         # self.patch_size = patch_size
@@ -55,7 +74,7 @@ class PatchEmbedding(nn.Module):
             nn.BatchNorm2d(2),
             nn.LeakyReLU(0.2),
             nn.Conv2d(2, emb_size, (14, 5), stride=(1, 5)),
-            Rearrange('b e (h) (w) -> b (h w) e'),
+            Rearrange('b e (h) (w) -> b (h w) e'), # compressing(1xT)
         )
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
         # self.positions = nn.Parameter(torch.randn((100 + 1, emb_size)))
@@ -156,15 +175,16 @@ class TransformerEncoder(nn.Sequential):
 class ClassificationHead(nn.Sequential):
     def __init__(self, emb_size, n_classes):
         super().__init__()
-        self.clshead = nn.Sequential(
-            Reduce('b n e -> b e', reduction='mean'),
-            nn.LayerNorm(emb_size),
-            nn.Linear(emb_size, n_classes)
-        )
+        self.reduce = Reduce('b n e -> b e', reduction='mean')
+        self.norm = nn.LayerNorm(emb_size)
+        self.classifier = nn.Linear(emb_size, n_classes)
+       
 
     def forward(self, x):
-        out = self.clshead(x)
-        return x, out
+        x = self.reduce(x)  
+        norm_x = self.norm(x)  
+        out = self.classifier(norm_x)  
+        return norm_x, out
     
 class ViT(nn.Sequential):
     def __init__(self, emb_size=128, depth=1, n_classes=10, **kwargs):
@@ -183,7 +203,7 @@ class ViT(nn.Sequential):
             ClassificationHead(emb_size, n_classes)
         )
 
-
+    
 class channel_attention(nn.Module):
     def __init__(self, sequence_num=1000, inter=30):
         super(channel_attention, self).__init__()
@@ -252,9 +272,7 @@ class Trans():
         super(Trans, self).__init__()
         self.batch_size = 128
         self.n_epochs = 100
-        #self.img_height = 22
-        #self.img_width = 600
-        #self.channels = 1
+        
         self.c_dim = 4
         self.lr = 0.0002
         self.b1 = 0.5
@@ -284,7 +302,7 @@ class Trans():
 
 
     def get_source_data(self):
-    # 데이터 불러오기
+    # Load Data
         with open('/content/drive/MyDrive/EEG2Image/data/eeg/char/data.pkl', 'rb') as file:
             data = pickle.load(file, encoding='latin1')
             self.train_data = data['x_train']
@@ -293,10 +311,11 @@ class Trans():
             self.test_label = data['y_test']
 
         # standardize
-        target_mean = np.mean(self.train_data) 
-        target_std = np.std(self.train_data)
-        self.train_data = (self.train_data - target_mean) / target_std
-        self.test_data = (self.test_data - target_mean) / target_std
+        for i in range(14):
+            scaler = StandardScaler()
+            scaler.fit(self.train_data[:, i, :, 0] )
+            self.train_data[:, i, :, 0] = scaler.transform(self.train_data[:, i, :, 0] )
+            self.test_data[:, i, :, 0]  = scaler.transform(self.test_data[:, i, :, 0])
 
         # numpy 배열로 변환 및 차원 확장
         self.train_data = self.train_data.transpose(0, 3, 1, 2)
@@ -319,6 +338,7 @@ class Trans():
         img, label, test_data, test_label = self.get_source_data()
         img = torch.from_numpy(img)
         label = torch.from_numpy(label)
+        
         # 정수형으로 만들기
         label = torch.argmax(label, dim=1)
         
@@ -355,13 +375,9 @@ class Trans():
         averAcc = 0
         bestvalLoss = float('inf')
         num = 0
-
-
-        # Train the cnn model
+        
         total_step = len(dataset)
         curr_lr = self.lr
-        # some better optimization strategy is worthy to explore. Sometimes terrible over-fitting.
-
 
         for e in range(self.n_epochs):
             in_epoch = time.time()
@@ -467,7 +483,6 @@ class Trans():
     
 def main():
     # wandb config
-    
     best = 0
     aver = 0
 
@@ -502,8 +517,6 @@ def main():
         result_write.write('The average accuracy is: ' + str(averAcc) + "\n")    
         result_write.close()
     
-    #print('The best accuracy is:', bestAcc)
-    #print('The average accuracy is:', averAcc)
 
 if __name__ == "__main__":
     main()
