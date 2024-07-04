@@ -23,7 +23,7 @@ To evaluate the classifier performance, we used two metrics: k-means accuracy an
 |LSTM(Baseline) | 72.95% | 53% |
 |LSTM + 2 Phase(Ours) | 74.18% | 74% |
 |Transformer | 75.01% | 73% |
-|Transformer + 2 Phase(Ours) | 78.04% | 78% |
+|Transformer + 2 Phase(Ours) :star2:| **78.04%** | **78%** |
 
 In addition, t-SNE visualization was conducted to visualize the clustering of features in **test data**, and the results are as follows.
 <img src="./docs/t-SNE_result1.png">
@@ -32,3 +32,7 @@ In addition, t-SNE visualization was conducted to visualize the clustering of fe
 To demonstrate the learning effect of 2-Phase, t-SNE visualization in Phase 1 and Phase 2 was trained, and the results are as follows.
 <img src="./docs/t-SNE_2Phase_result.png">
 
+
+
+## Code
+- 
