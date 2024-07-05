@@ -1,6 +1,8 @@
 # Improving EEG Classification Model Performance with a Transformer-Based Two-Phase Training Approach
 > '24W Deep Daiv Deep Learning Architecture Project
 
+## :star2: News
+:tada::tada: Our Two-Phase Training Model won the Outstanding Paper Award at the 2024 Summer Anual Conference of IEIE :tada::tada:
 ## Overview
 The classification model in the previous study showed **low performance because it could not capture spatial information of EEG signals**, and according to the t-SNE visualization results, there was a limitation that the cluster by each of the 10 classes is not clear**. Furthermore, EEG signals frequently overfit occurs due to differences in signal from person to person, and the existing model cannot cope with the prevention of such overfit. Therefore, the baseline [EEG2IMAGE](https://github.com/prajwalsingh/EEG2Image) wanted to improve the classification model performance.
 
